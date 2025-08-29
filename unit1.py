@@ -1,3 +1,5 @@
+import math
+
 def is_vampire(hour, awake) :
     if ((hour<6 or hour>22) and awake)or(hour>=6 and hour<22and awake==False) :
         print("vampire")
@@ -29,5 +31,27 @@ def test_good_deal(ogPrice, salePrice, expected) :
         return True
     print("Fail!")
 
-test_good_deal(100,50,True)
-test_good_deal(100,90,False)
+#test_good_deal(100,50,True) test_good_deal(100,90,False)
+
+def is_prime(n):
+
+    for i in range(2, int(math.sqrt(n)) + 1):
+        if n % i == 0:
+           # print("not prime")
+            return False  
+    #print("prime")
+    return True  
+
+
+def test_is_prime(n,expected):
+    if is_prime(n)==expected :
+        print("Pass!")
+    else:
+        print("FAIL")
+        
+test_is_prime(13,True)
+test_is_prime(14,False)
+
+for i in range(0,100):
+    if is_prime(i) == True :
+        print(i)
