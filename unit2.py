@@ -1,3 +1,5 @@
+import random
+
 def greeting(name) : 
     final = "Hello, "+ name +", how are you?"
     return final
@@ -25,5 +27,15 @@ def testAttention(string, expected) :
     else :
         print("FAIL "+string[0:8])
         
-testAttention("Hey you! Come here", True)
-testAttention("Hi! I'm a frog", False)
+#testAttention("Hey you! Come here", True) testAttention("Hi! I'm a frog", False)
+
+def coinToss() :
+    chance = random.randint(1, 2)
+    if chance == 1 :
+        result = "heads"
+    elif chance ==2 :
+        result = "tails"
+    print(result)
+
+for i in range(10) :
+    coinToss()
