@@ -39,3 +39,11 @@ def coinToss() :
 
 for i in range(10) :
     coinToss()
+    
+    
+def diceRoll() :
+    num = random.randint(1, 6)
+    print(num)
+
+for i in range(10) :
+    diceRoll()
