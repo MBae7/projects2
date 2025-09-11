@@ -86,13 +86,18 @@ add_na(6)
 
 def sum_powers(n) :
     last = 1
-    answer = 0 
+    answer = 1 
     string = "1 + "
-    for i in range(n):
-            string= f"{string}{last*2} + "
-            last=last*2
-            answer+=last
-    print( f"{string} = {answer}" )
+    if n>0 :
+        for i in range(n-1):
+                string= f"{string}{last*2} + "
+                last=last*2
+                answer+=last
+        
+    else:
+        answer = 0;
+    print( f"{string} = {answer}" ) 
+   
     
 sum_powers(0)
 sum_powers(3)
