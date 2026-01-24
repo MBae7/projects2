@@ -1,3 +1,5 @@
+
+
 let canvas;
 let capture;
 let tint_color;
