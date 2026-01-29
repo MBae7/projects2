@@ -148,6 +148,29 @@
             runOCR(canvas);
         }
 
+        function preprocessImage(imageElement) {
+    // Convert to grayscale (often improves robustness)
+            const img = new Image();
+            img.src = imageElement.src;
+            img.onload = () => {
+                const grayImg = new GrayImage(img);
+
+                // Apply a median blur to reduce noise.  Experiment with kernel size (e.g., 3x3, 5x5).
+                const blurredImg = grayImg.applyFilter(new MedianBlur(3));  // or 5
+                const sharpenedImg = grayImg.applyFilter(new UnsharpMask(3, 0.5)); // Adjust parameters
+                // Convert back to RGB
+                const blurredRGBImg = blurredImg.toRGB();
+
+                // Create a canvas from the processed image
+                const canvas = document.createElement('canvas');
+                canvas.width = blurredRGBImg.width;
+                canvas.height = blurredRGBImg.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(blurredRGBImg, 0, 0, canvas.width, canvas.height);
+                return canvas;
+            };
+        }
+        
         function runOCR(imageSource) {
             Tesseract.recognize(
                 imageSource,
@@ -157,7 +180,16 @@
                         if (m.status === 'recognizing text') {
                             outputText.innerText = `Processing: ${Math.round(m.progress * 100)}%`;
                         }
-                    }
+                    },
+                    // Add these options for better accuracy
+                    // Adjust these values to match your image characteristics.
+                    whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,?!:',
+                    cooked: false,  // Enable cooked mode for less noise
+                    tessedit_pageseg: 1, // 1 for a single page, 0 for multi-page
+                    tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,?!:',
+                    // Optional:  Try different page segmentation modes
+                    // page_segmentation: 'auto' // or 'full', 'full_oem', 'simple', 'word'
+                    // oem: 3, // or 4 for LSTM
                 }
             ).then(({ data: { text } }) => {
                 outputText.innerText = text || 'No text detected.';
