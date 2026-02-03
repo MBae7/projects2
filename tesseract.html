@@ -1,4 +1,6 @@
 <!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/braille-converter@0.3.3/dist/braille-converter.min.js"></script>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -146,6 +148,7 @@
             // Run OCR on the canvas
             outputText.innerText = 'Processing image...';
             runOCR(canvas);
+            translateToBraille(text);
         }
 
         function preprocessImage(imageElement) {
@@ -197,6 +200,11 @@
                 console.error('OCR Error:', err);
                 outputText.innerText = 'Error during OCR: ' + err.message;
             });
+        }
+        
+        function translateToBraille(text) {
+            const braille = brailleConverter.convert(text);
+            return braille;
         }
     </script>
 </body>
