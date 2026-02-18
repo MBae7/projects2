@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tesseract.js with Camera</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@2.1.1/dist/tesseract.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        video, canvas {
+            max-width: 100%;
+            border: 2px solid #333;
+            margin: 10px 0;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #outputText {
+            background-color: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            min-height: 50px;
+        }
+        .hidden {
+            display: none;
+        }
+        .status {
+            color: #666;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <h1>Tesseract.js - File & Camera OCR</h1>
+    
+    <div>
+        <h2>Option 1: Upload Image</h2>
+        <input type="file" id="imageInput" accept="image/*">
+    </div>
+    
+    <div>
+        <h2>Option 2: Camera Input</h2>
+        <button id="startCamera">Start Camera</button>
+        <button id="stopCamera" class="hidden">Stop Camera</button>
+        <p class="status">Press <strong>SPACE</strong> to capture and run OCR when camera is active</p>
+        <video id="video" class="hidden" autoplay playsinline></video>
+        <canvas id="canvas" class="hidden"></canvas>
+    </div>
+    
+    <div>
+        <h2>OCR Result:</h2>
+        <p id="outputText">Text will appear here...</p>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const outputText = document.getElementById('outputText');
+        const startCameraBtn = document.getElementById('startCamera');
+        const stopCameraBtn = document.getElementById('stopCamera');
+        let stream = null;
+        let cameraActive = false;
+
+        // Handle file upload
+        document.getElementById('imageInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.createElement("img");
+                    img.src = e.target.result;
+                    img.style.maxWidth = "100%";
+                    img.onload = function() {
+                        runOCR(img);
+                    };
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Start camera
+        startCameraBtn.addEventListener('click', async function() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } // Use rear camera on mobile if available
+                });
+                video.srcObject = stream;
+                video.classList.remove('hidden');
+                startCameraBtn.classList.add('hidden');
+                stopCameraBtn.classList.remove('hidden');
+                cameraActive = true;
+                outputText.innerText = 'Camera active. Press SPACE to capture and run OCR.';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                outputText.innerText = 'Error accessing camera: ' + err.message;
+            }
+        });
+
+        // Stop camera
+        stopCameraBtn.addEventListener('click', function() {
+            stopCamera();
+        });
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                video.srcObject = null;
+                video.classList.add('hidden');
+                canvas.classList.add('hidden');
+                startCameraBtn.classList.remove('hidden');
+                stopCameraBtn.classList.add('hidden');
+                cameraActive = false;
+                outputText.innerText = 'Camera stopped.';
+            }
+        }
+
+        // Capture and OCR on key press (SPACE bar)
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space' && cameraActive) {
+                event.preventDefault();
+                captureAndOCR();
+            }
+        });
+
+        function captureAndOCR() {
+            // Set canvas dimensions to match video
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw current video frame to canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Show the captured image
+            canvas.classList.remove('hidden');
+            
+            // Run OCR on the canvas
+            outputText.innerText = 'Processing image...';
+            runOCR(canvas);
+        }
+
+        function runOCR(imageSource) {
+            Tesseract.recognize(
+                imageSource,
+                'eng',
+                {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            outputText.innerText = `Processing: ${Math.round(m.progress * 100)}%`;
+                        }
+                    }
+                }
+            ).then(({ data: { text } }) => {
+                outputText.innerText = text || 'No text detected.';
+            }).catch(err => {
+                console.error('OCR Error:', err);
+                outputText.innerText = 'Error during OCR: ' + err.message;
+            });
+        }
+    </script>
+</body>
+</html>

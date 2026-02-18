@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<script src="https://cdn.jsdelivr.net/npm/braille-converter@0.3.3/dist/braille-converter.min.js"></script>
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -41,140 +39,147 @@
         }
     </style>
 </head>
-<body onload="initialize()">
-    <h1 id="statusText">Tesseract.js - File & Camera OCR</h1>
-
-    <div id="imageOptions">
-        <h2 id="imageHeading">Option 1: Upload Image</h2>
+<body>
+    <h1>Tesseract.js - File & Camera OCR</h1>
+    
+    <div>
+        <h2>Option 1: Upload Image</h2>
         <input type="file" id="imageInput" accept="image/*">
     </div>
-
-    <div id="cameraOptions">
-        <h2 id="cameraHeading">Option 2: Camera Input</h2>
-        <button id="startCamera" class="hidden">Start Camera</button>
+    
+    <div>
+        <h2>Option 2: Camera Input</h2>
+        <button id="startCamera">Start Camera</button>
         <button id="stopCamera" class="hidden">Stop Camera</button>
-        <p class="status" id="statusMessage">Press <strong id="statusText2">SPACE</strong> to capture and run OCR when camera is active</p>
-        <video id="video" class="hidden" autoplay playsinline width="640" height="480"></video>
+        <p class="status">Press <strong>SPACE</strong> to capture and run OCR when camera is active</p>
+        <video id="video" class="hidden" autoplay playsinline></video>
         <canvas id="canvas" class="hidden"></canvas>
     </div>
-
-    <div id="ocrResults">
-        <h2 id="resultsHeading">OCR Result:</h2>
-        <p id="outputText"></p>
+    
+    <div>
+        <h2>OCR Result:</h2>
+        <p id="outputText">Text will appear here...</p>
     </div>
 
     <script>
         const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const outputText = document.getElementById('outputText');
-        const startCameraBtn = document.getElementById('startCamera');
-        const stopCameraBtn = document.getElementById('stopCamera');
-        const statusMessage = document.getElementById('statusMessage');
-        const statusText2 = document.getElementById('statusText2');
-        const imageHeading = document.getElementById('imageHeading');
-        const resultsHeading = document.getElementById('resultsHeading');
-        let stream = null;
-        let cameraActive = false;
-        let roiTop = 0;
-        let roiLeft = 0;
-        let roiWidth = 400;
-        let roiHeight = 300;
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const outputText = document.getElementById('outputText');
+const startCameraBtn = document.getElementById('startCamera');
+const stopCameraBtn = document.getElementById('stopCamera');
+let stream = null;
+let cameraActive = false;
 
-        // Handle file upload
-        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+// Handle file upload
+document.getElementById('imageInput').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.createElement("img");
+            img.src = e.target.result;
+            img.onload = function() {
+                runOCR(img);
+            };
+        };
+        reader.readAsDataURL(file);
+    }
+});
 
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    runOCR(e.target.result);
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // Start camera
-        startCameraBtn.addEventListener('click', async function() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'environment' },
-                    audio: false  // Disable audio
-                });
-                video.srcObject = stream;
-                video.classList.remove('hidden');
-                startCameraBtn.classList.add('hidden');
-                stopCameraBtn.classList.remove('hidden');
-                cameraActive = true;
-                statusMessage.innerText = 'Camera active. Press SPACE to capture and run OCR.';
-                statusText2.innerText = 'SPACE';
-                imageHeading.innerText = 'Select Image';
-                resultsHeading.innerText = 'OCR Result:';
-            } catch (err) {
-                console.error('Error accessing camera:', err);
-                statusMessage.innerText = 'Error accessing camera: ' + err.message;
-                statusText2.innerText = 'SPACE';
-            }
+// Start camera
+startCameraBtn.addEventListener('click', async function() {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'environment' }, // Use rear camera
+            audio: false
         });
+        video.srcObject = stream;
+        video.classList.remove('hidden');
+        startCameraBtn.classList.add('hidden');
+        stopCameraBtn.classList.remove('hidden');
+        cameraActive = true;
+        outputText.innerText = "Camera active. Press SPACE to capture and run OCR when camera is active";
+    } catch (err) {
+        console.error('Error accessing camera:', err);
+        outputText.innerText = 'Error accessing camera: ' + err.message;
+        startCameraBtn.classList.remove('hidden');
+        stopCameraBtn.classList.add('hidden');
+    }
+});
 
-        // Stop camera
-        stopCameraBtn.addEventListener('click', function() {
-            stopCamera();
-        });
+// Stop camera
+stopCameraBtn.addEventListener('click', function() {
+    stopCamera();
+});
 
-        function stopCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
-                video.classList.add('hidden');
-                canvas.classList.add('hidden');
-                startCameraBtn.classList.remove('hidden');
-                stopCameraBtn.classList.add('hidden');
-                cameraActive = false;
-                statusMessage.innerText = 'Camera stopped.';
-                statusText2.innerText = 'SPACE';
-            }
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        video.srcObject = null;
+        video.classList.add('hidden');
+        canvas.classList.add('hidden');
+        startCameraBtn.classList.remove('hidden');
+        stopCameraBtn.classList.add('hidden');
+        cameraActive = false;
+        outputText.innerText = 'Camera stopped.';
+    }
+}
+
+// Capture and OCR on key press (SPACE bar)
+document.addEventListener('keydown', function(event) {
+    if (event.code === 'Space' && cameraActive) {
+        event.preventDefault();
+        captureAndOCR();
+    }
+});
+
+function captureAndOCR() {
+    // Get the image data from the canvas
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const pixelData = imageData.data;
+    const width = imageData.width;
+    const height = imageData.height;
+
+    // Create a 2D array for grayscale image data
+    const grayImageData = [];
+
+    for (let y = 0; y < height; y++) {
+        const row = [];
+        for (let x = 0; x < width; x++) {
+            // Calculate grayscale value (average of RGB channels)
+            const r = pixelData[ (y * width + x) * 4];
+            const g = pixelData[ (y * width + x) * 4 + 1];
+            const b = pixelData[ (y * width + x) * 4 + 2];
+            const gray = (r + g + b) / 3;
+            row.push(gray);
         }
+        grayImageData.push(row);
+    }
 
-        // Capture and OCR on key press (SPACE bar)
-        document.addEventListener('keydown', function(event) {
-            if (event.key === ' ' && cameraActive) {
-                captureAndOCR();
-            }
-        });
+    // Now you have grayImageData which is a 2D array and you can pass it to Tesseract
+    runOCR(grayImageData);
+}
 
-        function captureAndOCR() {
-            // Capture frame from the video element
-            const canvasElement = document.createElement('canvas');
-            canvasElement.width = video.videoWidth;
-            canvasElement.height = video.videoHeight;
-            const ctxCanvas = canvasElement.getContext('2d');
-            ctxCanvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
-
-            // Convert the canvas image to a data URL
-            const dataURL = canvasElement.toDataURL('image/png');
-
-            // Send the data URL to Tesseract for OCR
-            // NOTE: This is simplified and doesn't include error handling
-            // For real-world use, you should handle potential errors.
-            runOCR(dataURL);
+function runOCR(image) {
+    Tesseract.recognize(
+        image,
+        {
+            lang: 'eng',
+            //Add these options for better accuracy
+            whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,?!:',
+            cooked: false, // Enable cooked mode
+            tessedit_pageseg: 1, // 1 for a single page
+            tessedit_char_whitelist: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz.,?!:',
+            
         }
-
-        function runOCR(dataURL) {
-            // This function is the same as before.
-            // It takes the image data URL as input and performs OCR.
-            // In a real application, you would integrate Tesseract into a more robust pipeline.
-        }
-
-        // Initialize ROI
-        function initialize() {
-            // Reset ROI values
-            roiTop = 0;
-            roiLeft = 0;
-            roiWidth = 400;
-            roiHeight = 300;
-        }
+    ).then(({ data: { text } }) => {
+        outputText.innerText = text || 'No text detected.';
+    }).catch(err => {
+        console.error('OCR Error:', err);
+        outputText.innerText = 'Error during OCR: ' + err.message;
+    });
+}
     </script>
 </body>
 </html>
