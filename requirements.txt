@@ -2,3 +2,5 @@ emoji
 requests 
 jupyterlab
 py5
+opencv
+pytesseract
