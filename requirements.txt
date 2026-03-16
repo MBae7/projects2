@@ -4,3 +4,4 @@ jupyterlab
 py5
 opencv
 pytesseract
+serial
