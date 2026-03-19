@@ -15,3 +15,4 @@ while True:
     num = input("Enter a number: ") # Taking input from user
     value = write_read(num)
     print(f"Received from Arduino: {value}")
+    print(num)

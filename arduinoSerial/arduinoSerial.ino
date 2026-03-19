@@ -5,7 +5,7 @@ void setup() {
 
 void loop() {
   if (Serial.available() > 0) {
-    int data = Serial.read();
-    Serial.println(data); // Echo back to Python
+    String data = String(Serial.read());
+    Serial.println(data+1); // Echo back to Python
   }
 }
